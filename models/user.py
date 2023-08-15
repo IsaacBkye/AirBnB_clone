@@ -18,6 +18,3 @@ class User(BaseModel):
     first_name = ""
     last_name = ""
 
-    def __init__(self, *args, **kwargs):
-        ''' Initialization of inherit super class '''
-        super().__init__(*args, **kwargs)

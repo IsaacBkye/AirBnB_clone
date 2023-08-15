@@ -1,385 +1,219 @@
 #!/usr/bin/python3
-''' Module of class console.py '''
+"""Module of the command interpreter."""
 
 import cmd
-import ast
-import shlex
-import models
 from models.base_model import BaseModel
-from models.user import User
-from models.state import State
-from models.city import City
-from models.amenity import Amenity
-from models.place import Place
-from models.review import Review
-
-
-class_ls = {'BaseModel': BaseModel, 'User': User,
-            'State': State, 'City': City, 'Amenity': Amenity,
-            'Place': Place, 'Review': Review}
-store_all = models.storage.all()
+from models import storage
+import re
+import json
 
 
 class HBNBCommand(cmd.Cmd):
-    ''' Class command interpreter HBNB '''
 
-    def do_EOF(self, enter):
-        ''' Close the command interpreter when you use the \'EOF\' command '''
+    """Class for the command interpreter."""
+
+    prompt = "(hbnb) "
+
+    def default(self, line):
+        """Catch commands if nothing else matches then."""
+        # print("DEF:::", line)
+        self._precmd(line)
+
+    def _precmd(self, line):
+        """Intercepts commands to test for class.syntax()"""
+        # print("PRECMD:::", line)
+        match = re.search(r"^(\w*)\.(\w+)(?:\(([^)]*)\))$", line)
+        if not match:
+            return line
+        classname = match.group(1)
+        method = match.group(2)
+        args = match.group(3)
+        match_uid_and_args = re.search('^"([^"]*)"(?:, (.*))?$', args)
+        if match_uid_and_args:
+            uid = match_uid_and_args.group(1)
+            attr_or_dict = match_uid_and_args.group(2)
+        else:
+            uid = args
+            attr_or_dict = False
+
+        attr_and_value = ""
+        if method == "update" and attr_or_dict:
+            match_dict = re.search('^({.*})$', attr_or_dict)
+            if match_dict:
+                self.update_dict(classname, uid, match_dict.group(1))
+                return ""
+            match_attr_and_value = re.search(
+                '^(?:"([^"]*)")?(?:, (.*))?$', attr_or_dict)
+            if match_attr_and_value:
+                attr_and_value = (match_attr_and_value.group(
+                    1) or "") + " " + (match_attr_and_value.group(2) or "")
+        command = method + " " + classname + " " + uid + " " + attr_and_value
+        self.onecmd(command)
+        return command
+
+    def update_dict(self, classname, uid, s_dict):
+        """Helper method for update() with a dictionary."""
+        s = s_dict.replace("'", '"')
+        d = json.loads(s)
+        if not classname:
+            print("** class name missing **")
+        elif classname not in storage.classes():
+            print("** class doesn't exist **")
+        elif uid is None:
+            print("** instance id missing **")
+        else:
+            key = "{}.{}".format(classname, uid)
+            if key not in storage.all():
+                print("** no instance found **")
+            else:
+                attributes = storage.attributes()[classname]
+                for attribute, value in d.items():
+                    if attribute in attributes:
+                        value = attributes[attribute](value)
+                    setattr(storage.all()[key], attribute, value)
+                storage.all()[key].save()
+
+    def do_EOF(self, line):
+        """Handles End Of File character.
+        """
+        print()
         return True
 
-    def do_quit(self, enter):
-        ''' Close the command interpreter when you use the \'quit\' command '''
+    def do_quit(self, line):
+        """Exits the program.
+        """
         return True
 
     def emptyline(self):
-        ''' Clean the last nonempty command entered '''
-        return False
+        """Doesn't do anything on ENTER.
+        """
+        pass
 
-    def do_create(self, args):
-        ''' Create a new class including his id number '''
-        if not args:
-            print('** class name missing **')
+    def do_create(self, line):
+        """Creates an instance.
+        """
+        if line == "" or line is None:
+            print("** class name missing **")
+        elif line not in storage.classes():
+            print("** class doesn't exist **")
         else:
-            arg = args.split()
-            if arg[0] in class_ls:
-                exc = class_ls[arg[0]]()
-                print(exc.id)
-                exc.save()
-            else:
-                print('** class doesn\'t exist **')
+            b = storage.classes()[line]()
+            b.save()
+            print(b.id)
 
-    def do_show(self, args):
-        ''' Print the object with id specified and his dictionary '''
-        if not args:
-            print('** class name missing **')
+    def do_show(self, line):
+        """Prints the string representation of an instance.
+        """
+        if line == "" or line is None:
+            print("** class name missing **")
         else:
-            arg = args.split()
-            if not arg[0] in class_ls:
-                print('** class doesn\'t exist **')
+            words = line.split(' ')
+            if words[0] not in storage.classes():
+                print("** class doesn't exist **")
+            elif len(words) < 2:
+                print("** instance id missing **")
             else:
-                if len(arg) > 1:
-                    class_key = ''
-                    class_key = arg[0] + '.' + arg[1]
-                    if class_key in store_all:
-                        print(store_all[class_key])
-                    else:
-                        print('** no instance found **')
+                key = "{}.{}".format(words[0], words[1])
+                if key not in storage.all():
+                    print("** no instance found **")
                 else:
-                    print('** instance id missing **')
+                    print(storage.all()[key])
 
-    def do_destroy(self, args):
-        ''' Removes an object with id specified and his dictionary '''
-        if not args:
-            print('** class name missing **')
+    def do_destroy(self, line):
+        """Deletes an instance based on the class name and id.
+        """
+        if line == "" or line is None:
+            print("** class name missing **")
         else:
-            arg = args.split()
-            if not arg[0] in class_ls:
-                print('** class doesn\'t exist **')
+            words = line.split(' ')
+            if words[0] not in storage.classes():
+                print("** class doesn't exist **")
+            elif len(words) < 2:
+                print("** instance id missing **")
             else:
-                if len(arg) > 1:
-                    class_key = ''
-                    class_key = arg[0] + '.' + arg[1]
-                    if class_key in store_all:
-                        store_all.pop(class_key)
-                        models.storage.save()
-                    else:
-                        print('** no instance found **')
+                key = "{}.{}".format(words[0], words[1])
+                if key not in storage.all():
+                    print("** no instance found **")
                 else:
-                    print('** instance id missing **')
+                    del storage.all()[key]
+                    storage.save()
 
-    def do_all(self, args):
-        '''
-        Prints all string representation of all instances
-        based or not on the class name
-        ex: \'(hbnb ) all\' or \'(hbnb )\' all BaseModel
-        '''
-        ls_val = []
-        arg = args.split()
-        if len(arg) == 0:
-            for val in store_all.values():
-                ls_val.append(str(val))
-            print(ls_val)
-        elif arg[0] in class_ls:
-            for class_key in store_all:
-                if arg[0] in class_key:
-                    ls_val.append(str(store_all[class_key]))
-            print(ls_val)
+    def do_all(self, line):
+        """Prints all string representation of all instances.
+        """
+        if line != "":
+            words = line.split(' ')
+            if words[0] not in storage.classes():
+                print("** class doesn't exist **")
+            else:
+                nl = [str(obj) for key, obj in storage.all().items()
+                      if type(obj).__name__ == words[0]]
+                print(nl)
         else:
-            print('** class doesn\'t exist **')
+            new_list = [str(obj) for key, obj in storage.all().items()]
+            print(new_list)
 
-    def do_update(self, args):
-        '''
-        Updates an instance based on the class name and
-        id by adding or updating attribute.
-        ex: \'(hbnb )\' update BaseModel 123456789 attr_name attr_value
-        '''
-        arg = shlex.split(args)
-        length = len(arg)
-        if length == 0:
-            print('** class name missing **')
+    def do_count(self, line):
+        """Counts the instances of a class.
+        """
+        words = line.split(' ')
+        if not words[0]:
+            print("** class name missing **")
+        elif words[0] not in storage.classes():
+            print("** class doesn't exist **")
+        else:
+            matches = [
+                k for k in storage.all() if k.startswith(
+                    words[0] + '.')]
+            print(len(matches))
+
+    def do_update(self, line):
+        """Updates an instance by adding or updating attribute.
+        """
+        if line == "" or line is None:
+            print("** class name missing **")
             return
-        if not arg[0] in class_ls:
-            print('** class doesn\'t exist **')
-            return
+
+        rex = r'^(\S+)(?:\s(\S+)(?:\s(\S+)(?:\s((?:"[^"]*")|(?:(\S)+)))?)?)?'
+        match = re.search(rex, line)
+        classname = match.group(1)
+        uid = match.group(2)
+        attribute = match.group(3)
+        value = match.group(4)
+        if not match:
+            print("** class name missing **")
+        elif classname not in storage.classes():
+            print("** class doesn't exist **")
+        elif uid is None:
+            print("** instance id missing **")
         else:
-            if length == 1:
-                print('** instance id missing **')
-                return
+            key = "{}.{}".format(classname, uid)
+            if key not in storage.all():
+                print("** no instance found **")
+            elif not attribute:
+                print("** attribute name missing **")
+            elif not value:
+                print("** value missing **")
             else:
-                class_key = ''
-                class_key = arg[0] + '.' + arg[1]
-            if length == 2:
-                print('** attribute name missing **')
-                return
-            if length == 3:
-                print('** value missing **')
-                return
-            if length >= 4:
-                if class_key in store_all:
-                    setattr(store_all[class_key], arg[2], arg[3])
-                    models.storage.save()
+                cast = None
+                if not re.search('^".*"$', value):
+                    if '.' in value:
+                        cast = float
+                    else:
+                        cast = int
                 else:
-                    print('** no instance found **')
-                    return
-
-    def count(self, args):
-        '''
-        count all string representation of all instances
-        based or not on the class name
-        ex: \'(hbnb ) all\' or \'(hbnb )\' all BaseModel
-        '''
-        count = 0
-        ls_val = []
-        arg = args.split()
-        if arg[0] in class_ls:
-            for class_key in store_all:
-                if arg[0] in class_key:
-                    ls_val.append(str(store_all[class_key]))
-                    count += 1
-            print(count)
-        else:
-            print('** class doesn\'t exist **')
-
-    @staticmethod
-    def do_BaseModel(args):
-        '''
-        do_BaseModel, use the class.command of the console as input
-        while execute the command inserted
-        '''
-        if args:
-            fnd = args[args.find('("') + 2:args.find('")')]
-            command = args[0:args.find('(')]
-            arg = command.split(".")
-            if arg[1] == 'all':
-                HBNBCommand.do_all(HBNBCommand, 'BaseModel')
-            if arg[1] == 'count':
-                HBNBCommand.count(HBNBCommand, 'BaseModel')
-            if arg[1] == 'show':
-                HBNBCommand.do_show(HBNBCommand, 'BaseModel {}'.format(fnd))
-            if arg[1] == 'destroy':
-                HBNBCommand.do_destroy(HBNBCommand, 'BaseModel {}'.format(fnd))
-            if arg[1] == 'update':
-                ls_fd = fnd.split("\", \"")
-                if len(ls_fd) >= 3:
-                    st = 'BaseModel {} {} {}'.format(ls_fd[0],
-                                                     ls_fd[1], ls_fd[2])
-                    HBNBCommand.do_update(HBNBCommand, st)
-                else:
-                    fnd3 = fnd[0:fnd.find('"')]
-                    fnd4 = fnd[fnd.find('", ') + 3:len(args) - 1]
-                    dc = ast.literal_eval(fnd4)
-                    for key, val in dc.items():
-                        st = 'BaseModel {} {} {}'.format(fnd3, key, val)
-                        HBNBCommand.do_update(HBNBCommand, st)
-
-    @staticmethod
-    def do_User(args):
-        '''
-        do_User, use the class.command of the console as input
-        while execute the command inserted
-        '''
-        if args:
-            fnd = args[args.find('("') + 2:args.find('")')]
-            command = args[0:args.find('(')]
-            arg = command.split(".")
-            if arg[1] == 'all':
-                HBNBCommand.do_all(HBNBCommand, 'User')
-            if arg[1] == 'count':
-                HBNBCommand.count(HBNBCommand, 'User')
-            if arg[1] == 'show':
-                HBNBCommand.do_show(HBNBCommand, 'User {}'.format(fnd))
-            if arg[1] == 'destroy':
-                HBNBCommand.do_destroy(HBNBCommand, 'User {}'.format(fnd))
-            if arg[1] == 'update':
-                ls_fd = fnd.split("\", \"")
-                if len(ls_fd) >= 3:
-                    st = 'User {} {} {}'.format(ls_fd[0], ls_fd[1], ls_fd[2])
-                    HBNBCommand.do_update(HBNBCommand, st)
-                else:
-                    fnd3 = fnd[0:fnd.find('"')]
-                    fnd4 = fnd[fnd.find('", ') + 3:len(args) - 1]
-                    dc = ast.literal_eval(fnd4)
-                    for key, val in dc.items():
-                        st = 'User {} {} {}'.format(fnd3, key, val)
-                        HBNBCommand.do_update(HBNBCommand, st)
-
-    @staticmethod
-    def do_State(args):
-        '''
-        do_State, use the class.command of the console as input
-        while execute the command inserted
-        '''
-        if args:
-            fnd = args[args.find('("') + 2:args.find('")')]
-            command = args[0:args.find('(')]
-            arg = command.split(".")
-            if arg[1] == 'all':
-                HBNBCommand.do_all(HBNBCommand, 'State')
-            if arg[1] == 'count':
-                HBNBCommand.count(HBNBCommand, 'State')
-            if arg[1] == 'show':
-                HBNBCommand.do_show(HBNBCommand, 'State {}'.format(fnd))
-            if arg[1] == 'destroy':
-                HBNBCommand.do_destroy(HBNBCommand, 'State {}'.format(fnd))
-            if arg[1] == 'update':
-                ls_fd = fnd.split("\", \"")
-                if len(ls_fd) >= 3:
-                    st = 'State {} {} {}'.format(ls_fd[0], ls_fd[1], ls_fd[2])
-                    HBNBCommand.do_update(HBNBCommand, st)
-                else:
-                    fnd3 = fnd[0:fnd.find('"')]
-                    fnd4 = fnd[fnd.find('", ') + 3:len(args) - 1]
-                    dc = ast.literal_eval(fnd4)
-                    for key, val in dc.items():
-                        st = 'State {} {} {}'.format(fnd3, key, val)
-                        HBNBCommand.do_update(HBNBCommand, st)
-
-    @staticmethod
-    def do_City(args):
-        '''
-        do_City, use the class.command of the console as input
-        while execute the command inserted
-        '''
-        if args:
-            fnd = args[args.find('("') + 2:args.find('")')]
-            command = args[0:args.find('(')]
-            arg = command.split(".")
-            if arg[1] == 'all':
-                HBNBCommand.do_all(HBNBCommand, 'City')
-            if arg[1] == 'count':
-                HBNBCommand.count(HBNBCommand, 'City')
-            if arg[1] == 'show':
-                HBNBCommand.do_show(HBNBCommand, 'City {}'.format(fnd))
-            if arg[1] == 'destroy':
-                HBNBCommand.do_destroy(HBNBCommand, 'City {}'.format(fnd))
-            if arg[1] == 'update':
-                ls_fd = fnd.split("\", \"")
-                if len(ls_fd) >= 3:
-                    st = 'City {} {} {}'.format(ls_fd[0], ls_fd[1], ls_fd[2])
-                    HBNBCommand.do_update(HBNBCommand, st)
-                else:
-                    fnd3 = fnd[0:fnd.find('"')]
-                    fnd4 = fnd[fnd.find('", ') + 3:len(args) - 1]
-                    dc = ast.literal_eval(fnd4)
-                    for key, val in dc.items():
-                        st = 'City {} {} {}'.format(fnd3, key, val)
-                        HBNBCommand.do_update(HBNBCommand, st)
-
-    @staticmethod
-    def do_Amenity(args):
-        '''
-        do_Amenity, use the class.command of the console as input
-        while execute the command inserted
-        '''
-        if args:
-            fnd = args[args.find('("') + 2:args.find('")')]
-            command = args[0:args.find('(')]
-            arg = command.split(".")
-            if arg[1] == 'all':
-                HBNBCommand.do_all(HBNBCommand, 'Amenity')
-            if arg[1] == 'count':
-                HBNBCommand.count(HBNBCommand, 'Amenity')
-            if arg[1] == 'show':
-                HBNBCommand.do_show(HBNBCommand, 'Amenity {}'.format(fnd))
-            if arg[1] == 'destroy':
-                HBNBCommand.do_destroy(HBNBCommand, 'Amenity {}'.format(fnd))
-            if arg[1] == 'update':
-                ls_fd = fnd.split("\", \"")
-                if len(ls_fd) >= 3:
-                    st = 'Amenity {} {} {}'.format(ls_fd[0],
-                                                   ls_fd[1], ls_fd[2])
-                    HBNBCommand.do_update(HBNBCommand, st)
-                else:
-                    fnd3 = fnd[0:fnd.find('"')]
-                    fnd4 = fnd[fnd.find('", ') + 3:len(args) - 1]
-                    dc = ast.literal_eval(fnd4)
-                    for key, val in dc.items():
-                        st = 'Amenity {} {} {}'.format(fnd3, key, val)
-                        HBNBCommand.do_update(HBNBCommand, st)
-
-    @staticmethod
-    def do_Place(args):
-        '''
-        do_Place, use the class.command of the console as input
-        while execute the command inserted
-        '''
-        if args:
-            fnd = args[args.find('("') + 2:args.find('")')]
-            command = args[0:args.find('(')]
-            arg = command.split(".")
-            if arg[1] == 'all':
-                HBNBCommand.do_all(HBNBCommand, 'Place')
-            if arg[1] == 'count':
-                HBNBCommand.count(HBNBCommand, 'Place')
-            if arg[1] == 'show':
-                HBNBCommand.do_show(HBNBCommand, 'Place {}'.format(fnd))
-            if arg[1] == 'destroy':
-                HBNBCommand.do_destroy(HBNBCommand, 'Place {}'.format(fnd))
-            if arg[1] == 'update':
-                ls_fd = fnd.split("\", \"")
-                if len(ls_fd) >= 3:
-                    st = 'Place {} {} {}'.format(ls_fd[0], ls_fd[1], ls_fd[2])
-                    HBNBCommand.do_update(HBNBCommand, st)
-                else:
-                    fnd3 = fnd[0:fnd.find('"')]
-                    fnd4 = fnd[fnd.find('", ') + 3:len(args) - 1]
-                    dc = ast.literal_eval(fnd4)
-                    for key, val in dc.items():
-                        st = 'Place {} {} {}'.format(fnd3, key, val)
-                        HBNBCommand.do_update(HBNBCommand, st)
-
-    @staticmethod
-    def do_Review(args):
-        '''
-        do_Review, use the class.command of the console as input
-        while execute the command inserted
-        '''
-        if args:
-            fnd = args[args.find('("') + 2:args.find('")')]
-            command = args[0:args.find('(')]
-            arg = command.split(".")
-            if arg[1] == 'all':
-                HBNBCommand.do_all(HBNBCommand, 'Review')
-            if arg[1] == 'count':
-                HBNBCommand.count(HBNBCommand, 'Review')
-            if arg[1] == 'show':
-                HBNBCommand.do_show(HBNBCommand, 'Review {}'.format(fnd))
-            if arg[1] == 'destroy':
-                HBNBCommand.do_destroy(HBNBCommand, 'Review {}'.format(fnd))
-            if arg[1] == 'update':
-                ls_fd = fnd.split("\", \"")
-                if len(ls_fd) >= 3:
-                    st = 'Review {} {} {}'.format(ls_fd[0], ls_fd[1], ls_fd[2])
-                    HBNBCommand.do_update(HBNBCommand, st)
-                else:
-                    fnd3 = fnd[0:fnd.find('"')]
-                    fnd4 = fnd[fnd.find('", ') + 3:len(args) - 1]
-                    dc = ast.literal_eval(fnd4)
-                    for key, val in dc.items():
-                        st = 'Review {} {} {}'.format(fnd3, key, val)
-                        HBNBCommand.do_update(HBNBCommand, st)
+                    value = value.replace('"', '')
+                attributes = storage.attributes()[classname]
+                if attribute in attributes:
+                    value = attributes[attribute](value)
+                elif cast:
+                    try:
+                        value = cast(value)
+                    except ValueError:
+                        pass  # fine, stay a string then
+                setattr(storage.all()[key], attribute, value)
+                storage.all()[key].save()
 
 
 if __name__ == '__main__':
-    HBNBCommand.prompt = '(hbnb) '
     HBNBCommand().cmdloop()

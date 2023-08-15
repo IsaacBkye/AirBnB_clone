@@ -12,6 +12,3 @@ class State(BaseModel):
 
     name = ""
 
-    def __init__(self, *args, **kwargs):
-        ''' Initialization call to super class BaseModel '''
-        super().__init__(*args, **kwargs)
