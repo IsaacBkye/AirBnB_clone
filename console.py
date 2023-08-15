@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-''' Module class console.py '''
+''' Module of class console.py '''
 
 import cmd
 import ast
@@ -23,11 +23,11 @@ store_all = models.storage.all()
 class HBNBCommand(cmd.Cmd):
     ''' Class command interpreter HBNB '''
 
-    def doEOF(self, enter):
+    def do_EOF(self, enter):
         ''' Close the command interpreter when you use the \'EOF\' command '''
         return True
 
-    def doQuit(self, enter):
+    def do_quit(self, enter):
         ''' Close the command interpreter when you use the \'quit\' command '''
         return True
 
@@ -35,7 +35,7 @@ class HBNBCommand(cmd.Cmd):
         ''' Clean the last nonempty command entered '''
         return False
 
-    def doCreate(self, args):
+    def do_create(self, args):
         ''' Create a new class including his id number '''
         if not args:
             print('** class name missing **')
@@ -48,7 +48,7 @@ class HBNBCommand(cmd.Cmd):
             else:
                 print('** class doesn\'t exist **')
 
-    def doShow(self, args):
+    def do_show(self, args):
         ''' Print the object with id specified and his dictionary '''
         if not args:
             print('** class name missing **')
@@ -67,7 +67,7 @@ class HBNBCommand(cmd.Cmd):
                 else:
                     print('** instance id missing **')
 
-    def doDestroy(self, args):
+    def do_destroy(self, args):
         ''' Removes an object with id specified and his dictionary '''
         if not args:
             print('** class name missing **')
@@ -87,7 +87,7 @@ class HBNBCommand(cmd.Cmd):
                 else:
                     print('** instance id missing **')
 
-    def doAll(self, args):
+    def do_all(self, args):
         '''
         Prints all string representation of all instances
         based or not on the class name
@@ -171,13 +171,13 @@ class HBNBCommand(cmd.Cmd):
             command = args[0:args.find('(')]
             arg = command.split(".")
             if arg[1] == 'all':
-                HBNBCommand.doAll(HBNBCommand, 'BaseModel')
+                HBNBCommand.do_all(HBNBCommand, 'BaseModel')
             if arg[1] == 'count':
                 HBNBCommand.count(HBNBCommand, 'BaseModel')
             if arg[1] == 'show':
-                HBNBCommand.doShow(HBNBCommand, 'BaseModel {}'.format(fnd))
+                HBNBCommand.do_show(HBNBCommand, 'BaseModel {}'.format(fnd))
             if arg[1] == 'destroy':
-                HBNBCommand.doDestroy(HBNBCommand, 'BaseModel {}'.format(fnd))
+                HBNBCommand.do_destroy(HBNBCommand, 'BaseModel {}'.format(fnd))
             if arg[1] == 'update':
                 ls_fd = fnd.split("\", \"")
                 if len(ls_fd) >= 3:
@@ -203,13 +203,13 @@ class HBNBCommand(cmd.Cmd):
             command = args[0:args.find('(')]
             arg = command.split(".")
             if arg[1] == 'all':
-                HBNBCommand.doAll(HBNBCommand, 'User')
+                HBNBCommand.do_all(HBNBCommand, 'User')
             if arg[1] == 'count':
                 HBNBCommand.count(HBNBCommand, 'User')
             if arg[1] == 'show':
-                HBNBCommand.doShow(HBNBCommand, 'User {}'.format(fnd))
+                HBNBCommand.do_show(HBNBCommand, 'User {}'.format(fnd))
             if arg[1] == 'destroy':
-                HBNBCommand.doDestroy(HBNBCommand, 'User {}'.format(fnd))
+                HBNBCommand.do_destroy(HBNBCommand, 'User {}'.format(fnd))
             if arg[1] == 'update':
                 ls_fd = fnd.split("\", \"")
                 if len(ls_fd) >= 3:
@@ -234,13 +234,13 @@ class HBNBCommand(cmd.Cmd):
             command = args[0:args.find('(')]
             arg = command.split(".")
             if arg[1] == 'all':
-                HBNBCommand.doAll(HBNBCommand, 'State')
+                HBNBCommand.do_all(HBNBCommand, 'State')
             if arg[1] == 'count':
                 HBNBCommand.count(HBNBCommand, 'State')
             if arg[1] == 'show':
-                HBNBCommand.doShow(HBNBCommand, 'State {}'.format(fnd))
+                HBNBCommand.do_show(HBNBCommand, 'State {}'.format(fnd))
             if arg[1] == 'destroy':
-                HBNBCommand.doDestroy(HBNBCommand, 'State {}'.format(fnd))
+                HBNBCommand.do_destroy(HBNBCommand, 'State {}'.format(fnd))
             if arg[1] == 'update':
                 ls_fd = fnd.split("\", \"")
                 if len(ls_fd) >= 3:
@@ -265,13 +265,13 @@ class HBNBCommand(cmd.Cmd):
             command = args[0:args.find('(')]
             arg = command.split(".")
             if arg[1] == 'all':
-                HBNBCommand.doAll(HBNBCommand, 'City')
+                HBNBCommand.do_all(HBNBCommand, 'City')
             if arg[1] == 'count':
                 HBNBCommand.count(HBNBCommand, 'City')
             if arg[1] == 'show':
-                HBNBCommand.doShow(HBNBCommand, 'City {}'.format(fnd))
+                HBNBCommand.do_show(HBNBCommand, 'City {}'.format(fnd))
             if arg[1] == 'destroy':
-                HBNBCommand.doDestroy(HBNBCommand, 'City {}'.format(fnd))
+                HBNBCommand.do_destroy(HBNBCommand, 'City {}'.format(fnd))
             if arg[1] == 'update':
                 ls_fd = fnd.split("\", \"")
                 if len(ls_fd) >= 3:
@@ -296,13 +296,13 @@ class HBNBCommand(cmd.Cmd):
             command = args[0:args.find('(')]
             arg = command.split(".")
             if arg[1] == 'all':
-                HBNBCommand.doAll(HBNBCommand, 'Amenity')
+                HBNBCommand.do_all(HBNBCommand, 'Amenity')
             if arg[1] == 'count':
                 HBNBCommand.count(HBNBCommand, 'Amenity')
             if arg[1] == 'show':
-                HBNBCommand.doShow(HBNBCommand, 'Amenity {}'.format(fnd))
+                HBNBCommand.do_show(HBNBCommand, 'Amenity {}'.format(fnd))
             if arg[1] == 'destroy':
-                HBNBCommand.doDestroy(HBNBCommand, 'Amenity {}'.format(fnd))
+                HBNBCommand.do_destroy(HBNBCommand, 'Amenity {}'.format(fnd))
             if arg[1] == 'update':
                 ls_fd = fnd.split("\", \"")
                 if len(ls_fd) >= 3:
@@ -328,13 +328,13 @@ class HBNBCommand(cmd.Cmd):
             command = args[0:args.find('(')]
             arg = command.split(".")
             if arg[1] == 'all':
-                HBNBCommand.doAll(HBNBCommand, 'Place')
+                HBNBCommand.do_all(HBNBCommand, 'Place')
             if arg[1] == 'count':
                 HBNBCommand.count(HBNBCommand, 'Place')
             if arg[1] == 'show':
-                HBNBCommand.doShow(HBNBCommand, 'Place {}'.format(fnd))
+                HBNBCommand.do_show(HBNBCommand, 'Place {}'.format(fnd))
             if arg[1] == 'destroy':
-                HBNBCommand.doDestroy(HBNBCommand, 'Place {}'.format(fnd))
+                HBNBCommand.do_destroy(HBNBCommand, 'Place {}'.format(fnd))
             if arg[1] == 'update':
                 ls_fd = fnd.split("\", \"")
                 if len(ls_fd) >= 3:
@@ -359,13 +359,13 @@ class HBNBCommand(cmd.Cmd):
             command = args[0:args.find('(')]
             arg = command.split(".")
             if arg[1] == 'all':
-                HBNBCommand.doAll(HBNBCommand, 'Review')
+                HBNBCommand.do_all(HBNBCommand, 'Review')
             if arg[1] == 'count':
                 HBNBCommand.count(HBNBCommand, 'Review')
             if arg[1] == 'show':
-                HBNBCommand.doShow(HBNBCommand, 'Review {}'.format(fnd))
+                HBNBCommand.do_show(HBNBCommand, 'Review {}'.format(fnd))
             if arg[1] == 'destroy':
-                HBNBCommand.doDestroy(HBNBCommand, 'Review {}'.format(fnd))
+                HBNBCommand.do_destroy(HBNBCommand, 'Review {}'.format(fnd))
             if arg[1] == 'update':
                 ls_fd = fnd.split("\", \"")
                 if len(ls_fd) >= 3:
